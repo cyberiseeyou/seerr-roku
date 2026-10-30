@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint — bslint (BrightScript static analysis). Verified clean on PR #1.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint (bslint)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run bslint
+        run: npx --yes @rokucommunity/bslint
+
+  # ---------------------------------------------------------------------------
+  # Security scan — gitleaks, catching hardcoded credentials/secrets.
+  # This project shipped a real admin password as a login-form default before
+  # this CI existed (see fix/leaked-credentials-and-project-setup) — this gate
+  # exists specifically so that never lands again unnoticed.
+  # ---------------------------------------------------------------------------
+  security:
+    name: Security scan (gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Tests — no automated test framework for BrightScript in this project.
+  # Rule 3's "run the test suite" step is manual sideload verification instead.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: No automated tests configured
+        run: echo "No BrightScript test framework in use — verify manually via sideload before merging."
+
+  # ---------------------------------------------------------------------------
+  # Build — package the Roku channel and upload it as a PR artifact so
+  # reviewers can sideload-test the exact commit under review.
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build channel package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package channel zip
+        run: |
+          mkdir -p build
+          zip -r "build/seerr-roku-pr-${{ github.event.pull_request.number }}.zip" \
+            manifest components source images \
+            -x '*.bak'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seerr-roku-pr-${{ github.event.pull_request.number }}
+          path: build/seerr-roku-pr-${{ github.event.pull_request.number }}.zip
+          retention-days: 14
