@@ -18,7 +18,6 @@ function getServerUrl() as String
     sec = CreateObject("roRegistrySection", "SeerrAuth")
     url = ""
     if sec.Exists("serverUrl") then url = sec.Read("serverUrl")
-    if url = "" then url = "https://request.cybermc.site"
     return url
 end function
 

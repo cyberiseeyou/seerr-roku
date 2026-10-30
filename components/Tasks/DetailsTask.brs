@@ -30,7 +30,6 @@ sub fetchExtraDetails()
     if sec.Exists("serverUrl") then
         serverUrl = sec.Read("serverUrl")
     end if
-    if serverUrl = "" then serverUrl = "https://request.cybermc.site"
     
     baseUrl = serverUrl + "/api/v1/" + mType + "/" + mId
     

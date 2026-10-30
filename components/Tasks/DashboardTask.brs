@@ -29,7 +29,6 @@ sub fetchDashboard()
     if sec.Exists("serverUrl") then
         serverUrl = sec.Read("serverUrl")
     end if
-    if serverUrl = "" then serverUrl = "https://request.cybermc.site"
     
     if activeTab = "discover" then
         reqs = fetchApi(serverUrl + "/api/v1/request?take=20&filter=pending")

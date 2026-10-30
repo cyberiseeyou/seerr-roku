@@ -42,14 +42,14 @@ sub onContentChange()
                         if sec.Exists("serverUrl") then
                             serverUrl = sec.Read("serverUrl")
                         end if
-                        if serverUrl = "" then serverUrl = "https://request.cybermc.site"
-                        
-                        url = serverUrl + "/api/v1/" + mediaType + "/" + tmdbId.toStr()
-                        m.metadataTask.requestData = {
-                            url: url,
-                            method: "GET"
-                        }
-                        m.metadataTask.control = "RUN"
+                        if serverUrl <> "" then
+                            url = serverUrl + "/api/v1/" + mediaType + "/" + tmdbId.toStr()
+                            m.metadataTask.requestData = {
+                                url: url,
+                                method: "GET"
+                            }
+                            m.metadataTask.control = "RUN"
+                        end if
                     end if
                 end if
             end if

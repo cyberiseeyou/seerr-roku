@@ -20,8 +20,7 @@ sub init()
     sec = CreateObject("roRegistrySection", "SeerrAuth")
     serverUrl = ""
     if sec.Exists("serverUrl") then serverUrl = sec.Read("serverUrl")
-    if serverUrl = "" then serverUrl = "https://request.cybermc.site"
-    
+
     m.authMeTask.requestData = {
         url: serverUrl + "/api/v1/auth/me"
         method: "GET"
@@ -71,9 +70,9 @@ sub onAuthMeResponse()
                 avatarUrl = data.avatar
                 if avatarUrl.StartsWith("/") then
                     sec = CreateObject("roRegistrySection", "SeerrAuth")
-                    serverUrl = "https://request.cybermc.site"
+                    serverUrl = ""
                     if sec.Exists("serverUrl") then serverUrl = sec.Read("serverUrl")
-                    avatarUrl = serverUrl + avatarUrl
+                    if serverUrl <> "" then avatarUrl = serverUrl + avatarUrl
                 end if
                 m.userAvatar.uri = avatarUrl
             end if

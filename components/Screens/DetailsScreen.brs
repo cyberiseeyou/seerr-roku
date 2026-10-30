@@ -42,7 +42,6 @@ function getServerUrl() as String
     sec = CreateObject("roRegistrySection", "SeerrAuth")
     url = ""
     if sec.Exists("serverUrl") then url = sec.Read("serverUrl")
-    if url = "" then url = "https://request.cybermc.site"
     return url
 end function
 
@@ -321,8 +320,6 @@ sub onActionResponse()
     resp = m.actionTask.response
     if resp.code = 200 or resp.code = 201 then
         m.actionStatus.text = "Success!"
-        m.actionBtn.visible = false
-        m.denyBtn.visible = false
         m.top.actionComplete = true
     else if resp.code = 400 then
         m.actionStatus.text = "Error 400: " + Left(resp.body, 100)

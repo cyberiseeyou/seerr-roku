@@ -15,9 +15,9 @@ sub onContentChange()
                     avatarUrl = user.avatar
                     if avatarUrl.StartsWith("/") then
                         sec = CreateObject("roRegistrySection", "SeerrAuth")
-                        serverUrl = "https://request.cybermc.site"
+                        serverUrl = ""
                         if sec.Exists("serverUrl") then serverUrl = sec.Read("serverUrl")
-                        avatarUrl = serverUrl + avatarUrl
+                        if serverUrl <> "" then avatarUrl = serverUrl + avatarUrl
                     end if
                     m.avatar.uri = avatarUrl
                 else
