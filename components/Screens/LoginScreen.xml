@@ -3,57 +3,157 @@
     <script type="text/brightscript" uri="pkg:/components/Screens/LoginScreen.brs" />
     <interface>
         <field id="loginSuccess" type="boolean" value="false" />
+        <function name="screenShown" />
     </interface>
-    
-    <children>
-        <!-- A nice dark background gradient or solid color -->
-        <Rectangle id="background" width="1920" height="1080" color="0x0F172AFF" />
-        
-        <!-- Center the entire login form -->
-        <Group translation="[660, 250]">
-            <!-- A nice big logo -->
-            <Poster uri="pkg:/images/logo.png" 
-                    translation="[0, -100]" 
-                    width="600" 
-                    height="120" 
-                    loadDisplayMode="scaleToFit" />
-                   
-            <Label text="Please log in to continue" 
-                   translation="[120, 60]" 
-                   font="font:MediumSystemFont" 
-                   color="0x94A3B8FF" />
 
-            <Label id="statusLabel" 
-                   translation="[0, 130]" 
+    <children>
+        <Rectangle id="background" width="1920" height="1080" color="0x111827FF" />
+
+        <Poster uri="pkg:/images/logo.png"
+                translation="[760, 90]"
+                width="400"
+                height="150"
+                loadDisplayMode="scaleToFit" />
+
+        <!-- Visual pass to match Seerr's own web login more closely (rounded, bordered
+             fields, a permanently-colored primary button). Roku's plain Rectangle has no
+             border-radius equivalent, so field_bg*.png/login_bg*.png are pre-rendered
+             rounded-rect images instead (see images/, generated programmatically rather
+             than hand drawn), not flat color fills. A rounded card_bg.png for this card was
+             tried too but didn't render correctly on real hardware, and isn't worth chasing
+             further; plain flat fill here instead. -->
+        <Rectangle id="loginCard" width="760" height="640" translation="[580, 260]" color="0x1F2937E6" />
+
+        <!-- "Login with Jellyfin", not "Login with Seerr" — this app only implements the
+             Jellyfin-auth flow (Seerr's JellyfinLogin.tsx), a different screen from Seerr's
+             own local-account login (which the web UI calls "Login with Seerr"). -->
+        <Label text="Login with Jellyfin"
+               width="640"
+               translation="[640, 300]"
+               horizAlign="center"
+               font="font:LargeBoldSystemFont"
+               color="0xE5E7EBFF" />
+
+        <Label id="statusLabel"
+               width="640"
+               translation="[640, 350]"
+               horizAlign="center"
+               font="font:SmallSystemFont"
+               color="0xEF4444FF"
+               wrap="true" />
+
+        <!-- Custom focusable Group rows, not Button: Button's own text label alignment is
+             hard-coded to "right" in its implementation (verified in brs-scenegraph's
+             Button.ts, and confirmed matching real hardware — there's no field to override
+             it). A left-aligned field label and a center-aligned Login label need real
+             control over that, so these are plain Groups with our own background Poster
+             + Label, and OK is handled explicitly in onKeyEvent below instead of relying on
+             Button's native buttonSelected. All four rows are the same 600x60 size, centered
+             under the 760-wide card (card spans x:580-1340, so these start at x:660). The
+             *Bg Posters swap between field_bg.png (unfocused) and field_bg_focused.png
+             (focused) in LoginScreen.brs::focusItem, same idea as the old Rectangle color
+             swap but as a rounded-rect image instead of a flat fill. -->
+        <Group id="serverUrlRow" translation="[660, 410]" focusable="true">
+            <Poster id="serverUrlBg" uri="pkg:/images/field_bg.png" width="600" height="60" />
+            <Label id="serverUrlLabel"
+                   text="Server URL"
+                   translation="[20, 17]"
+                   width="560"
+                   horizAlign="left"
+                   font="font:MediumSystemFont"
+                   color="0xE5E7EBFF" />
+        </Group>
+
+        <Group id="usernameRow" translation="[660, 480]" focusable="true">
+            <Poster id="usernameBg" uri="pkg:/images/field_bg.png" width="600" height="60" />
+            <Label id="usernameLabel"
+                   text="Username"
+                   translation="[20, 17]"
+                   width="560"
+                   horizAlign="left"
+                   font="font:MediumSystemFont"
+                   color="0xE5E7EBFF" />
+        </Group>
+
+        <Group id="passwordRow" translation="[660, 550]" focusable="true">
+            <Poster id="passwordBg" uri="pkg:/images/field_bg.png" width="600" height="60" />
+            <Label id="passwordLabel"
+                   text="Password"
+                   translation="[20, 17]"
+                   width="560"
+                   horizAlign="left"
+                   font="font:MediumSystemFont"
+                   color="0xE5E7EBFF" />
+        </Group>
+
+        <!-- Registry is the only cross-screen session store this app has (every screen re-reads
+             SeerrAuth.serverUrl/connectSid per API call — see CODING_NOTES.md), so this can't
+             gate whether we write to it at login; it gates whether the session survives past
+             this run. See LoginScreen.brs::onAuthResponse and source/main.brs.
+
+             CheckList, not another custom row: unlike Button and our own Groups above (neither
+             has any built-in key handling), CheckList.handleOK() is a real, standard,
+             documented Roku list behavior — verified directly in brs-scenegraph's own
+             CheckList.ts source.
+
+             Real device screenshots settled the icon-color question: Roku's default
+             checkedIconUri/uncheckedIconUri render as a fixed dark checkmark in every state
+             (focused or not) regardless of color/focusedColor/focusBitmapBlendColor/
+             focusFootprintBlendColor/focusBitmapUri — none of them had any visible effect
+             across several real-device tests. Roku draws that system icon with its own
+             baked-in pixel colors; it isn't tinted by any of these fields at all. Fixed by
+             supplying our own checkbox icon images (images/checkbox_checked.png,
+             images/checkbox_unchecked.png), drawn directly in the same light color as the
+             text, so there's no tint mechanism to depend on. A second pair
+             (images/checkbox_*_focused.png), used only for focusedCheckedIconUri/
+             focusedUncheckedIconUri, draws the identical light checkbox glyph over a solid
+             accent-filled square backdrop, so the checkbox reads the same as always with
+             just a highlight behind it (matching the other rows' solid-fill highlight)
+             instead of the checkbox itself changing color. Text stays the same color
+             throughout regardless (color/focusedColor are pinned equal, same reasoning as
+             above).
+
+             drawFocusFeedback/focusFootprintBitmapUri/focusBitmapUri stay blanked to remove
+             ArrayGrid's own default focus-highlight rendering. font/focusedFont stay pinned
+             to the same value: LabelList's default focusedFont is font:MediumBoldSystemFont,
+             which made this row's text go bold on focus while every other row on this screen
+             stays the same weight regardless of focus. -->
+        <CheckList id="saveCredentials"
+                   translation="[660, 620]"
+                   checkedState="[true]"
+                   itemSize="[600, 60]"
+                   itemSpacing="[0, 0]"
+                   drawFocusFeedback="false"
+                   focusBitmapUri=""
+                   focusFootprintBitmapUri=""
+                   color="0xE5E7EBFF"
+                   focusedColor="0xE5E7EBFF"
+                   font="font:MediumSystemFont"
+                   focusedFont="font:MediumSystemFont"
+                   checkedIconUri="pkg:/images/checkbox_checked.png"
+                   uncheckedIconUri="pkg:/images/checkbox_unchecked.png"
+                   focusedCheckedIconUri="pkg:/images/checkbox_checked_focused.png"
+                   focusedUncheckedIconUri="pkg:/images/checkbox_unchecked_focused.png">
+            <ContentNode role="content">
+                <ContentNode title="Save credentials on this device" />
+            </ContentNode>
+        </CheckList>
+
+        <!-- Login is a permanent, always-accent-colored primary button (login_bg.png), like
+             Seerr's own "Sign In" button, instead of only turning accent-colored on focus
+             like the other rows. login_bg_focused.png (a brighter shade, the same accent
+             used for "this row is focused" everywhere else on this screen) swaps in via
+             LoginScreen.brs::focusItem so focus is still clearly visible against the resting
+             color underneath it. -->
+        <Group id="loginRow" translation="[660, 700]" focusable="true">
+            <Poster id="loginBg" uri="pkg:/images/login_bg.png" width="600" height="60" />
+            <Label id="loginLabel"
+                   text="Login"
+                   translation="[0, 17]"
                    width="600"
                    horizAlign="center"
-                   font="font:SmallSystemFont" 
-                   color="0xEF4444FF" />
-
-            <Group id="inputGroup" translation="[0, 180]">
-                <!-- Custom nice buttons -->
-                <Button id="serverUrlBtn" 
-                        text="Server URL: https://" 
-                        translation="[100, 0]" 
-                        minWidth="400" />
-                        
-                <Button id="usernameBtn" 
-                        text="Enter Username" 
-                        translation="[100, 70]" 
-                        minWidth="400" />
-                        
-                <Button id="passwordBtn" 
-                        text="Enter Password" 
-                        translation="[100, 140]" 
-                        minWidth="400" />
-                        
-                <Button id="loginButton" 
-                        text="Login" 
-                        translation="[100, 230]" 
-                        minWidth="400" 
-                        iconUri="" 
-                        focusedIconUri="" />
-            </Group>
+                   font="font:MediumBoldSystemFont"
+                   color="0xE5E7EBFF" />
         </Group>
 
         <ApiTask id="authTask" />

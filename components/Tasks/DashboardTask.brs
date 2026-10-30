@@ -2,22 +2,35 @@ sub init()
     m.top.functionName = "fetchDashboard"
 end sub
 
+' GetToString() is synchronous with no built-in timeout — against an unreachable
+' server this hung far longer than expected, and fetchDashboard() below calls this
+' up to 5x sequentially per tab, stacking those hangs. Bounded to 10s per call via
+' the same async+wait+cancel pattern ApiTask.brs already uses successfully.
 function fetchApi(url as String) as Object
     request = CreateObject("roUrlTransfer")
     request.SetUrl(url)
     request.SetCertificatesFile("common:/certs/ca-bundle.crt")
     request.InitClientCertificates()
-    
+
     sec = CreateObject("roRegistrySection", "SeerrAuth")
     if sec.Exists("connectSid") then
         cookieStr = sec.Read("connectSid")
-        if cookieStr <> "" then 
+        if cookieStr <> "" then
             request.AddHeader("Cookie", cookieStr)
         end if
     end if
-    
-    response = request.GetToString()
-    return ParseJson(response)
+
+    port = CreateObject("roMessagePort")
+    request.SetPort(port)
+    request.AsyncGetToString()
+
+    msg = wait(10000, port)
+    if type(msg) = "roUrlEvent" and msg.GetResponseCode() = 200 then
+        return ParseJson(msg.GetString())
+    else
+        request.AsyncCancel()
+        return invalid
+    end if
 end function
 
 sub fetchDashboard()
